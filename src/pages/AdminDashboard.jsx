@@ -2,99 +2,105 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = "http://localhost:5000";
 
 const AdminDashboard = () => {
-  const [orders, setOrders] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [messages, setMessages] = useState([]); 
   const navigate = useNavigate();
+  const token = localStorage.getItem("adminToken");
+
+  const [counts, setCounts] = useState({
+    products: 0,
+    orders: 0,
+    users: 0,
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
-    if (!token) return navigate("/admin/login");
-
-    const fetchData = async () => {
+    const fetchCounts = async () => {
       try {
-        const [ordersRes, usersRes] = await Promise.all([
-          axios.get(`${BASE_URL}/api/admin/orders`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${BASE_URL}/api/admin/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [productsRes, ordersRes, usersRes] = await Promise.all([
+          axios.get(`${BASE_URL}/api/admin/products/count`, { headers }),
+          axios.get(`${BASE_URL}/api/admin/orders/count`, { headers }),
+          axios.get(`${BASE_URL}/api/admin/users/count`, { headers }),
         ]);
 
-        setOrders(ordersRes.data.orders || []);
-        setUsers(usersRes.data.users || []);
-
-        
-        const stored = JSON.parse(localStorage.getItem("contactMessages") || "[]");
-        setMessages(stored);
-
+        setCounts({
+          products: productsRes.data.count || 0,
+          orders: ordersRes.data.count || 0,
+          users: usersRes.data.count || 0,
+        });
       } catch (err) {
-        console.error("Dashboard Error:", err);
+        console.error("Dashboard Count Error:", err);
+        if (err.response && err.response.status === 401) {
+          handleLogout();
+        }
       }
     };
 
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    if (token) fetchCounts();
+  }, [token]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    navigate("/admin/login");
+  };
 
   return (
-    <div className="min-h-screen bg-yellow-50 flex flex-col">
-      <header className="flex justify-between items-center p-6 bg-yellow-500 shadow-md">
-        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
         <button
-          onClick={() => {
-            localStorage.removeItem("adminToken");
-            navigate("/admin/login");
-          }}
-          className="bg-white text-yellow-600 px-4 py-2 rounded-lg font-semibold"
+          onClick={handleLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition"
         >
           Logout
         </button>
-      </header>
+      </div>
 
-      <main className="flex-1 flex flex-col items-center p-10">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 w-full max-w-6xl">
-
-          
-          <div
-            className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
-            onClick={() => navigate("/admin/orders")}
-          >
-            <h2 className="text-xl font-semibold text-gray-700">Total Orders</h2>
-            <p className="text-4xl font-bold text-yellow-600 mt-3">{orders.length}</p>
-          </div>
-
-          
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-700">Total Users</h2>
-            <p className="text-4xl font-bold text-yellow-600 mt-3">{users.length}</p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        
+        <div
+          className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
+          onClick={() => navigate("/admin/products")}
+        >
+          <h2 className="text-xl font-semibold text-gray-700">Products</h2>
+          <p className="text-4xl font-bold text-yellow-600 mt-3">
+            {counts.products}
+          </p>
+        </div>
 
         
-          <div
-            className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
-            onClick={() => navigate("/addproduct")}
-          >
-            <h2 className="text-xl font-semibold text-gray-700">Add Product</h2>
-            <p className="text-4xl font-bold text-yellow-600 mt-3">+</p>
-          </div>
-
-          
-          <div
-            className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
-            onClick={() => navigate("/admin/messages")}
-          >
-            <h2 className="text-xl font-semibold text-gray-700">Messages</h2>
-            <p className="text-4xl font-bold text-yellow-600 mt-3">{messages.length}</p>
-          </div>
-
+        <div
+          className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
+          onClick={() => navigate("/admin/orders")}
+        >
+          <h2 className="text-xl font-semibold text-gray-700">Orders</h2>
+          <p className="text-4xl font-bold text-yellow-600 mt-3">
+            {counts.orders}
+          </p>
         </div>
-      </main>
+
+        
+        <div
+          className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
+          onClick={() => navigate("/admin/users")}
+        >
+          <h2 className="text-xl font-semibold text-gray-700">Users</h2>
+          <p className="text-4xl font-bold text-yellow-600 mt-3">
+            {counts.users}
+          </p>
+        </div>
+
+        
+        <div
+          className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
+          onClick={() => navigate("/admin/revenue")}
+        >
+          <h2 className="text-xl font-semibold text-gray-700">Revenue</h2>
+          <p className="text-4xl font-bold text-green-600 mt-3">₹</p>
+        </div>
+      </div>
     </div>
   );
 };

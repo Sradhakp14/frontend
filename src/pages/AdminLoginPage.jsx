@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = "http://localhost:5000";
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
@@ -16,11 +16,15 @@ const AdminLoginPage = () => {
         email,
         password,
       });
+
+      
       localStorage.setItem("adminToken", data.token);
       navigate("/admin/dashboard");
     } catch (err) {
-      alert("Invalid credentials");
       console.error("Login error:", err);
+      alert(
+        err.response?.data?.message || "Invalid credentials. Please try again."
+      );
     }
   };
 
@@ -32,7 +36,7 @@ const AdminLoginPage = () => {
         </h2>
 
         <form onSubmit={handleLogin} className="space-y-5">
-         
+          
           <div>
             <label className="block text-gray-700 font-medium mb-2">
               Email Address
@@ -47,7 +51,7 @@ const AdminLoginPage = () => {
             />
           </div>
 
-     
+          
           <div>
             <label className="block text-gray-700 font-medium mb-2">
               Password
@@ -62,7 +66,7 @@ const AdminLoginPage = () => {
             />
           </div>
 
-       
+          
           <button
             type="submit"
             className="w-full bg-yellow-500 text-white py-2 rounded-lg font-semibold text-lg hover:bg-yellow-600 hover:scale-[1.02] transition duration-200 shadow-md"

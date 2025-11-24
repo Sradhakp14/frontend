@@ -1,118 +1,120 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = "http://localhost:5000";
 
 const AdminOrdersPage = () => {
   const [orders, setOrders] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
 
   const token = localStorage.getItem("adminToken");
 
-  const fixPath = (path) => {
-    if (!path) return "";
-    return path.replace(/\\/g, "/").replace(/^\/+/, "").replace(/^uploads\//, "");
+  const fixPath = (img) => {
+    if (!img) return "";
+    return img.replace(/\\/g, "/").replace("public/", "").trim();
   };
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/orders`, {
+      const res = await axios.get(`${BASE_URL}/api/admin/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setOrders(res.data.orders || []);
+
+      setOrders(res.data || []);
+      setLoading(false);
     } catch (err) {
       console.error("Admin Orders Fetch Error:", err);
       setOrders([]);
+      setLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
+  const updateStatus = async (id, status) => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(res.data.users || []);
+      await axios.put(
+        `${BASE_URL}/api/admin/orders/${id}`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchOrders();
     } catch (err) {
-      console.error("Fetch users error:", err);
-      setUsers([]);
+      console.error("Status update failed:", err);
     }
   };
 
   useEffect(() => {
     fetchOrders();
-    fetchUsers();
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (orders && users) setLoading(false);
-  }, [orders, users]);
+  // --------------------------
+  // 🔥 DATE FILTER FUNCTIONS
+  // --------------------------
 
-  const handleStatusChange = async (orderId, newStatus) => {
-    try {
-      await axios.put(
-        `${BASE_URL}/api/orders/${orderId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchOrders();
-    } catch (err) {
-      console.error("Update Status Error:", err);
-    }
+  const isToday = (date) => {
+    const d = new Date(date);
+    const today = new Date();
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
   };
 
-  const markPickup = async (orderId) => {
-    try {
-      await axios.put(
-        `${BASE_URL}/api/orders/${orderId}/return/pickup`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchOrders();
-    } catch (err) {
-      console.error("Mark pickup error:", err);
-    }
+  const isThisWeek = (date) => {
+    const d = new Date(date);
+    const today = new Date();
+    const first = today.getDate() - today.getDay();
+    const last = first + 6;
+    const weekStart = new Date(today.setDate(first));
+    const weekEnd = new Date(today.setDate(last));
+
+    return d >= weekStart && d <= weekEnd;
   };
 
-  const filteredOrders = orders.filter((order) => {
-    if (filter === "All") return true;
-    if (filter === "Returned") return order.status === "Returned";
-    if (filter === "Returned Requests") return order.returnRequested === true;
-    return order.status === filter;
+  const isThisMonth = (date) => {
+    const d = new Date(date);
+    const today = new Date();
+    return (
+      d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // --------------------------
+  // APPLY DATE FILTER
+  // --------------------------
+  const dateFilteredOrders = orders.filter((o) => {
+    if (dateFilter === "Today") return isToday(o.createdAt);
+    if (dateFilter === "This Week") return isThisWeek(o.createdAt);
+    if (dateFilter === "This Month") return isThisMonth(o.createdAt);
+    return true;
   });
 
-  const statusColor = (status) => {
-    switch (status) {
-      case "Delivered":
-        return "text-green-700 font-semibold";
-      case "Cancelled":
-        return "text-red-700 font-semibold";
-      case "Shipped":
-        return "text-blue-700 font-semibold";
-      case "Out for Delivery":
-        return "text-purple-700 font-semibold";
-      case "Processing":
-        return "text-yellow-700 font-semibold";
-      case "Returned":
-        return "text-green-800 font-semibold";
-      default:
-        return "text-gray-700";
-    }
-  };
+  // --------------------------
+  // APPLY STATUS FILTER
+  // --------------------------
+  const finalFilteredOrders =
+    filter === "All"
+      ? dateFilteredOrders
+      : dateFilteredOrders.filter((o) => o.status === filter);
 
   if (loading)
-    return <p className="text-center mt-10 text-gray-600">Loading...</p>;
+    return (
+      <p className="text-center mt-10 text-gray-600 text-xl font-semibold">
+        Loading Orders...
+      </p>
+    );
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        GoldMart Admin Orders
-      </h1>
+    <div className="flex bg-gray-100 min-h-screen">
 
-      <div className="flex flex-wrap gap-3 mb-6">
+      {/* ---------------- SIDEBAR ---------------- */}
+      <div className="w-64 bg-white border-r shadow p-5">
+        <h2 className="text-2xl font-bold mb-4">Filters</h2>
+
+        {/* STATUS FILTER */}
+        <h3 className="font-semibold mb-2 text-gray-700">Status</h3>
         {[
           "All",
           "Pending",
@@ -122,180 +124,116 @@ const AdminOrdersPage = () => {
           "Delivered",
           "Cancelled",
           "Returned",
-          "Returned Requests",
-        ].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1 rounded ${
-              filter === f ? "bg-black text-white" : "bg-white border"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <h2 className="text-lg font-semibold text-gray-700">Total Orders</h2>
-          <p className="text-2xl font-bold">{orders.length}</p>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <h2 className="text-lg font-semibold text-gray-700">Total Users</h2>
-          <p className="text-2xl font-bold">{users.length}</p>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <h2 className="text-lg font-semibold text-gray-700">Revenue</h2>
-          <p className="text-2xl font-bold">
-            ₹
-            {orders
-              .reduce((s, o) => s + (o.totalPrice || 0), 0)
-              .toFixed(2)}
-          </p>
-        </div>
-      </div>
-
-     
-      <div className="space-y-6">
-        {filteredOrders.map((order) => (
-          <div
-            key={order._id}
-            className="bg-white shadow rounded p-5 border border-gray-200"
-          >
-           
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-lg font-semibold">
-                  {order?.user?.name || "Guest User"}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {order?.user?.email || "No email"}
-                </p>
-              </div>
-
-              <div className="text-right">
-                <p className="font-semibold">₹{order.totalPrice}</p>
-                <p className="text-sm text-gray-500">
-                  {new Date(order.createdAt).toLocaleString("en-IN")}
-                </p>
-                <p className={`mt-1 ${statusColor(order.status)}`}>
-                  {order.status}
-                </p>
-
-                {order.returnRequested && !order.returnApproved && (
-                  <p className="text-purple-700 font-semibold">
-                    Return Requested
-                  </p>
-                )}
-
-                {order.returnApproved && !order.returnPickupDone && (
-                  <p className="text-blue-700 font-semibold">
-                    Return Approved — Pickup Pending
-                  </p>
-                )}
-
-                {order.returnPickupDone && (
-                  <p className="text-green-700 font-semibold">Returned</p>
-                )}
-              </div>
-            </div>
-
-           
-            {order.returnRequested && (
-              <div className="bg-purple-50 p-3 rounded mb-3 border-l-4 border-purple-500">
-                <p className="font-semibold">
-                  Return Reason: {order.returnReason}
-                </p>
-                <p className="text-sm">
-                  Requested:{" "}
-                  {order.returnRequestedAt
-                    ? new Date(order.returnRequestedAt).toLocaleString("en-IN")
-                    : "—"}
-                </p>
-              </div>
-            )}
-
-            
-            <table className="w-full border text-sm mb-3">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="p-2 border">Image</th>
-                  <th className="p-2 border">Product</th>
-                  <th className="p-2 border">Qty</th>
-                  <th className="p-2 border">Price</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {order.orderItems.map((it, idx) => (
-                  <tr key={idx}>
-                    
-                    <td className="p-2 border text-center">
-                      <img
-                        src={`${BASE_URL}/uploads/${fixPath(it.image)}`}
-                        alt={it.name}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </td>
-
-                   
-                    <td className="p-2 border">
-                      <p className="font-semibold">{it.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {it.category || ""}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {it.description || ""}
-                      </p>
-                    </td>
-
-                 
-                    <td className="p-2 border text-center">{it.qty}</td>
-
-                  
-                    <td className="p-2 border text-center">₹{it.price}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-           
-            <div className="flex justify-between items-center">
-              <div>
-                <select
-                  value={order.status}
-                  onChange={(e) =>
-                    handleStatusChange(order._id, e.target.value)
-                  }
-                  className="border px-2 py-1 rounded"
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Processing">Processing</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Out for Delivery">Out for Delivery</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                  <option value="Returned">Returned</option>
-                </select>
-              </div>
-
-              <div>
-                {order.returnApproved && !order.returnPickupDone && (
-                  <button
-                    onClick={() => markPickup(order._id)}
-                    className="ml-3 px-3 py-1 bg-green-600 text-white rounded"
-                  >
-                    Mark Pickup Done
-                  </button>
-                )}
-              </div>
-            </div>
+        ].map((st) => (
+          <div key={st} className="flex items-center gap-2 mb-2">
+            <input
+              type="radio"
+              checked={filter === st}
+              onChange={() => setFilter(st)}
+            />
+            <label>{st}</label>
           </div>
         ))}
+
+        <hr className="my-4" />
+
+        {/* DATE FILTER */}
+        <h3 className="font-semibold mb-2 text-gray-700">Date Filter</h3>
+        {["All", "Today", "This Week", "This Month"].map((dt) => (
+          <div key={dt} className="flex items-center gap-2 mb-2">
+            <input
+              type="radio"
+              checked={dateFilter === dt}
+              onChange={() => setDateFilter(dt)}
+            />
+            <label>{dt}</label>
+          </div>
+        ))}
+      </div>
+
+      {/* ---------------- MAIN CONTENT ---------------- */}
+      <div className="flex-1 p-6">
+        <h1 className="text-3xl font-bold mb-6">GoldMart Admin Orders</h1>
+
+        {finalFilteredOrders.length === 0 ? (
+          <p className="text-gray-600 text-lg text-center mt-10">
+            No orders available.
+          </p>
+        ) : (
+          <div className="space-y-6">
+            {finalFilteredOrders.map((order) => (
+              <div
+                key={order._id}
+                className="bg-white border shadow rounded-lg p-5"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">{order.user?.name}</h2>
+                    <p className="text-gray-500 text-sm">{order.user?.email}</p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-bold text-xl">₹{order.totalPrice}</p>
+                    <p className="text-gray-600 text-sm">
+                      {new Date(order.createdAt).toLocaleString("en-IN")}
+                    </p>
+                    <p className="mt-1 font-medium">{order.status}</p>
+                  </div>
+                </div>
+
+                {/* Items table */}
+                <table className="w-full border text-sm mb-4">
+                  <thead>
+                    <tr className="bg-gray-200 text-left">
+                      <th className="p-2 border">Image</th>
+                      <th className="p-2 border">Product</th>
+                      <th className="p-2 border text-center">Qty</th>
+                      <th className="p-2 border text-center">Price</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {order.orderItems.map((item, index) => (
+                      <tr key={index}>
+                        <td className="border p-2 text-center">
+                          <img
+                            src={`${BASE_URL}/uploads/${fixPath(item.image)}`}
+                            className="w-16 h-16 object-cover rounded"
+                            onError={(e) => (e.target.src = "/placeholder.png")}
+                          />
+                        </td>
+                        <td className="border p-2">{item.name}</td>
+                        <td className="border p-2 text-center">{item.qty}</td>
+                        <td className="border p-2 text-center">₹{item.price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Status Only — Pickup Button Removed */}
+                <div className="flex justify-between items-center">
+                  <select
+                    value={order.status}
+                    onChange={(e) =>
+                      updateStatus(order._id, e.target.value)
+                    }
+                    className="border px-3 py-1 rounded"
+                  >
+                    <option>Pending</option>
+                    <option>Processing</option>
+                    <option>Shipped</option>
+                    <option>Out for Delivery</option>
+                    <option>Delivered</option>
+                    <option>Cancelled</option>
+                    <option>Returned</option>
+                  </select>
+
+                  {/* Pickup button fully removed */}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

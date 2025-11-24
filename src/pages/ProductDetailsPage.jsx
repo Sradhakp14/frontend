@@ -3,76 +3,71 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = "http://localhost:5000";
+
 
 const getImageUrl = (imgPath) => {
   if (!imgPath) return "/images/placeholder.jpg";
   if (imgPath.startsWith("http")) return imgPath;
-  if (imgPath.startsWith("uploads/") || imgPath.includes("/uploads/")) {
-    return `${BASE_URL}/${imgPath.replace(/\\/g, "/")}`;
-  }
   return `${BASE_URL}/uploads/${imgPath.replace(/\\/g, "/")}`;
 };
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
-  const { addToCart } = useCart();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+
+
   const [reviews, setReviews] = useState([]);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editing, setEditing] = useState(null);
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = localStorage.getItem("token");
 
+  
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const { data } = await axios.get(`${BASE_URL}/api/products/${id}`);
         setProduct(data);
         setReviews(data.reviews || []);
-      } catch (error) {
-        console.error("Error fetching product:", error);
+      } catch (err) {
+        console.log(err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchProduct();
   }, [id]);
 
-  const handleReviewSubmit = async (e) => {
+  
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!rating || !comment.trim()) {
-      alert("Please provide both rating and comment.");
-      return;
-    }
+    if (!token) return navigate("/login");
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("You must be logged in to submit or edit a review.");
-      navigate("/login");
+    if (!rating || !comment.trim()) {
+      alert("Rating & comment required!");
       return;
     }
 
     try {
-      setSubmitting(true);
-
-      if (editingReviewId) {
+      if (editing) {
         const { data } = await axios.put(
-          `${BASE_URL}/api/products/${id}/reviews/${editingReviewId}`,
+          `${BASE_URL}/api/products/${id}/reviews/${editing}`,
           { rating, comment },
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
         setReviews((prev) =>
-          prev.map((r) => (r._id === editingReviewId ? data.review : r))
+          prev.map((r) => (r._id === editing ? data.review : r))
         );
-        setEditingReviewId(null);
-        alert("Review updated successfully!");
+        setEditing(null);
       } else {
         const { data } = await axios.post(
           `${BASE_URL}/api/products/${id}/reviews`,
@@ -81,260 +76,214 @@ const ProductDetailsPage = () => {
         );
 
         setReviews((prev) => [...prev, data.review]);
-        alert("Review submitted successfully!");
       }
 
       setRating(0);
       setComment("");
-    } catch (error) {
-      console.error("Error submitting review:", error);
-      alert(error.response?.data?.message || "Failed to submit review");
-    } finally {
-      setSubmitting(false);
+    } catch {
+      alert("Failed to submit review");
     }
   };
 
-  const handleEditReview = (rev) => {
-    setRating(rev.rating);
-    setComment(rev.comment);
-    setEditingReviewId(rev._id);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this review?");
-    if (!confirmDelete) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("You must be logged in to delete a review.");
-      navigate("/login");
-      return;
-    }
+  
+  const handleDelete = async (rid) => {
+    if (!window.confirm("Delete review?")) return;
 
     try {
-      await axios.delete(`${BASE_URL}/api/products/${id}/reviews/${reviewId}`, {
+      await axios.delete(`${BASE_URL}/api/products/${id}/reviews/${rid}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      setReviews((prev) => prev.filter((r) => r._id !== reviewId));
-      alert("Review deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting review:", error);
-      alert(error.response?.data?.message || "Failed to delete review");
+      setReviews((prev) => prev.filter((r) => r._id !== rid));
+    } catch {
+      alert("Failed to delete");
     }
   };
 
+  
   if (loading)
     return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-white to-yellow-50">
-        <div className="w-14 h-14 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
 
   if (!product)
-    return (
-      <div className="text-center text-red-600 font-semibold text-lg mt-10">
-        Product not found.
-      </div>
-    );
+    return <h2 className="text-center text-red-600 mt-12">Product Not Found</h2>;
 
-  const imageUrl = getImageUrl(product.image);
+  const isOut = product.stock <= 0;
+  const isLow = product.stock > 0 && product.stock <= 5;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-yellow-50 to-white py-16 px-6">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
+    <div className="py-12 px-6 bg-white">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-10">
+        
+        {isOut && (
+          <div className="absolute top-4 left-4 bg-red-600 text-white px-4 py-1 rounded-full">
+            OUT OF STOCK
+          </div>
+        )}
+        {!isOut && isLow && (
+          <div className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-1 rounded-full">
+            LOW STOCK
+          </div>
+        )}
+        {!isOut && !isLow && (
+          <div className="absolute top-4 left-4 bg-green-600 text-white px-4 py-1 rounded-full">
+            IN STOCK
+          </div>
+        )}
 
+    
         <div className="flex-1 flex justify-center">
           <img
-            src={imageUrl}
+            src={getImageUrl(product.image)}
+            className="rounded-lg shadow-lg w-full max-w-md"
             alt={product.name}
-            className="rounded-2xl shadow-2xl w-full max-w-md object-cover border border-yellow-100 transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => (e.target.src = "/images/placeholder.jpg")}
           />
         </div>
 
-        <div className="flex-1 space-y-6">
-          <h1 className="text-4xl font-extrabold text-yellow-700 tracking-wide capitalize">
-            {product.name}
-          </h1>
+        
+        <div className="flex-1 space-y-4">
+          <h1 className="text-4xl font-bold text-yellow-700">{product.name}</h1>
+          <p className="text-gray-500 uppercase">{product.category}</p>
 
-          {product.category && (
-            <p className="text-lg text-gray-500 uppercase tracking-widest">
-              {product.category}
-            </p>
-          )}
-
-          <p className="text-3xl font-semibold text-yellow-800">
+          <p className="text-3xl font-bold text-yellow-800">
             ₹{product.price?.toLocaleString()}
           </p>
 
-          <p className="text-gray-700 leading-relaxed text-base">
-            {product.description ||
-              "This exclusive piece is crafted with passion, precision, and elegance."}
-          </p>
+          {isLow && <p className="text-red-500 font-semibold">Only {product.stock} left!</p>}
+          {isOut && <p className="text-red-600 font-semibold">Out of Stock</p>}
 
-          <div className="mt-6 bg-yellow-50 border border-yellow-200 p-5 rounded-xl shadow-sm">
-            <h3 className="text-xl font-semibold text-yellow-700 mb-3">
-              Return & Replacement Policy
-            </h3>
+          <p className="text-gray-700">{product.description}</p>
 
-            <ul className="space-y-2 text-gray-700">
-              <li className="flex items-start space-x-2">
-                <span className="text-yellow-600 text-xl">↺</span>
-                <p>
-                  <strong>7-Day Return / Replacement</strong> – Eligible for damaged,
-                  defective, or wrong product delivery.
-                </p>
-              </li>
+        
+          <div className="flex flex-col gap-4 pt-4">
+            <div className="flex gap-4">
+              <button
+                disabled={isOut}
+                onClick={() => addToCart(product)}
+                className={`px-6 py-2 rounded-full text-white ${
+                  isOut ? "bg-gray-400" : "bg-yellow-600 hover:bg-yellow-700"
+                }`}
+              >
+                {isOut ? "Out of Stock" : "Add to Cart"}
+              </button>
 
-              <li className="flex items-start space-x-2">
-                <span className="text-yellow-600 text-xl">✔</span>
-                <p>
-                  Item must be unused & returned in original condition with all
-                  packaging.
-                </p>
-              </li>
+              <button
+                disabled={isOut}
+                onClick={() => {
+                  addToCart(product);
+                  navigate("/checkout");
+                }}
+                className={`px-6 py-2 rounded-full text-white ${
+                  isOut ? "bg-gray-400" : "bg-yellow-800 hover:bg-yellow-900"
+                }`}
+              >
+                Buy Now
+              </button>
+            </div>
 
-              <li className="flex items-start space-x-2">
-                <span className="text-yellow-600 text-xl">📦</span>
-                <p>
-                  Replacement pickup arranged within <strong>2–5 business days</strong>.
-                </p>
-              </li>
-
-              <li className="flex items-start space-x-2">
-                <span className="text-yellow-600 text-xl">💰</span>
-                <p>
-                  Full refund processed once the product is inspected at warehouse.
-                </p>
-              </li>
-            </ul>
-          </div>
-
-          <div className="flex flex-wrap gap-4 mt-6">
-            <button
-              onClick={() => addToCart(product)}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2.5 px-8 rounded-full shadow-md"
-            >
-              Add to Cart
-            </button>
-
-            <button
-              onClick={() => {
-                addToCart(product);
-                navigate("/checkout");
-              }}
-              className="bg-yellow-700 hover:bg-yellow-800 text-white font-semibold py-2.5 px-8 rounded-full shadow-md"
-            >
-              Buy Now
-            </button>
+            
+            <div className="mt-2 bg-yellow-50 border border-yellow-300 p-4 rounded-lg shadow-sm">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                Return Policy
+              </h3>
+              <ul className="list-disc ml-5 text-gray-700 text-sm space-y-1">
+                <li>Returns accepted within 7 days of delivery.</li>
+                <li>Product must be unused & in original packaging.</li>
+                <li>All certificates & tags must be included.</li>
+                <li>No returns on customized jewellery.</li>
+                <li>Refund processed in 5–7 working days.</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto mt-16 bg-white p-8 rounded-2xl shadow-lg border border-yellow-100">
-        <h2 className="text-2xl font-bold text-yellow-700 mb-6">
-          Customer Reviews
-        </h2>
+      
+      <div className="max-w-4xl mx-auto mt-16">
+        <h2 className="text-2xl font-bold text-yellow-700 mb-4">Customer Reviews</h2>
 
-        {reviews.length > 0 ? (
-          <div className="space-y-4 mb-8">
-            {reviews.map((rev) => (
-              <div key={rev._id || rev.user} className="border-b border-gray-200 pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {[...Array(5)].map((_, i) => (
-                      <span
-                        key={i}
-                        className={i < rev.rating ? "text-yellow-500" : "text-gray-300"}
-                      >
-                        ★
-                      </span>
-                    ))}
-                    <p className="font-semibold text-gray-800">
-                      {rev.user || "Anonymous"}
-                    </p>
-                  </div>
-
-                  {rev.userId === currentUser?._id && (
-                    <div className="space-x-3">
-                      <button
-                        onClick={() => handleEditReview(rev)}
-                        className="text-yellow-600 hover:text-yellow-800 text-sm font-medium"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteReview(rev._id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-gray-700 mt-1">{rev.comment}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 mb-8">No reviews yet. Be the first to review!</p>
+        {reviews.length === 0 && (
+          <p className="text-gray-500">No reviews yet.</p>
         )}
 
-        <form onSubmit={handleReviewSubmit} className="space-y-4">
-          <div>
-            <label className="block font-medium text-gray-800 mb-2">
-              {editingReviewId ? "Edit Your Rating:" : "Your Rating:"}
-            </label>
-
-            <div className="flex space-x-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className={`cursor-pointer text-2xl ${
-                    star <= rating ? "text-yellow-500" : "text-gray-300"
-                  }`}
-                >
-                  ★
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-medium text-gray-800 mb-2">
-              {editingReviewId ? "Edit Your Review:" : "Your Review:"}
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows="4"
-              placeholder="Share your thoughts about this product..."
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-6 rounded-full shadow-md disabled:opacity-50"
+        
+        {reviews.map((r) => (
+          <div
+            key={r._id}
+            className="p-4 border rounded-lg bg-white shadow-sm mb-4"
           >
-            {submitting
-              ? "Submitting..."
-              : editingReviewId
-              ? "Update Review"
-              : "Submit Review"}
+            <div className="flex items-center gap-3">
+              <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+                {r.rating} ★
+              </span>
+              <p className="text-sm font-semibold text-gray-800">{r.user}</p>
+            </div>
+
+            <p className="text-gray-700 text-sm mt-2 leading-relaxed">
+              {r.comment}
+            </p>
+
+            {user && user._id === r.userId && (
+              <div className="flex gap-4 mt-2 text-xs">
+                <button
+                  onClick={() => {
+                    setEditing(r._id);
+                    setRating(r.rating);
+                    setComment(r.comment);
+                  }}
+                  className="text-blue-600"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(r._id)}
+                  className="text-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+
+      
+        <form
+          onSubmit={handleSubmitReview}
+          className="mt-10 p-5 border rounded-lg bg-white shadow-sm max-w-md"
+        >
+          <h3 className="text-lg font-semibold mb-3 text-gray-800">
+            {editing ? "Edit Review" : "Write a Review"}
+          </h3>
+
+        
+          <div className="flex gap-1 mb-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <span
+                key={star}
+                onClick={() => setRating(star)}
+                className={`cursor-pointer text-xl ${
+                  star <= rating ? "text-yellow-500" : "text-gray-300"
+                }`}
+              >
+                ★
+              </span>
+            ))}
+          </div>
+
+          <textarea
+            className="w-full border rounded-md p-2 text-sm"
+            rows="3"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Share your experience..."
+          />
+
+          <button className="mt-3 w-full bg-yellow-600 text-white py-2 rounded-md hover:bg-yellow-700 text-sm">
+            {editing ? "Update Review" : "Submit Review"}
           </button>
         </form>
-      </div>
-
-      <div className="mt-20 text-center text-gray-600 text-sm">
-        <p className="italic">
-          "Jewellery is not just an accessory — it's a reflection of who you are."
-        </p>
       </div>
     </div>
   );

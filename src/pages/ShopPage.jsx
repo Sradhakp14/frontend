@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = "http://localhost:5000";
 
 const ShopPage = () => {
   const { addToCart } = useCart();
@@ -86,6 +86,7 @@ const ShopPage = () => {
                 className="w-full h-64 object-cover cursor-pointer"
                 onClick={() => navigate(`/product/${product._id}`)}
               />
+
               <div className="p-5 text-center">
                 <h4
                   className="text-xl font-semibold text-gray-800 mb-1 hover:text-yellow-700 cursor-pointer"
@@ -93,9 +94,24 @@ const ShopPage = () => {
                 >
                   {product.name}
                 </h4>
-                <p className="text-yellow-700 font-bold text-lg mb-3">
+
+                <p className="text-yellow-700 font-bold text-lg mb-1">
                   ₹{product.price?.toLocaleString()}
                 </p>
+
+          
+                {product.countInStock === 0 ? (
+                  <span className="inline-block bg-red-100 text-red-700 text-sm font-semibold px-3 py-1 rounded-full mb-3">
+                    SOLD OUT
+                  </span>
+                ) : product.countInStock <= 5 ? (
+                  <span className="inline-block bg-yellow-100 text-yellow-700 text-sm font-semibold px-3 py-1 rounded-full mb-3">
+                    LOW STOCK
+                  </span>
+                ) : (
+                  <span className="mb-3 block"></span>
+                )}
+
                 <div className="flex justify-center gap-3">
                   <button
                     onClick={() => navigate(`/product/${product._id}`)}
@@ -103,11 +119,17 @@ const ShopPage = () => {
                   >
                     View
                   </button>
+
                   <button
                     onClick={() => addToCart(product)}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-full hover:bg-yellow-700"
+                    disabled={product.countInStock === 0}
+                    className={`px-4 py-2 rounded-full text-white ${
+                      product.countInStock === 0
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-yellow-600 hover:bg-yellow-700"
+                    }`}
                   >
-                    Add to Cart
+                    {product.countInStock === 0 ? "Unavailable" : "Add to Cart"}
                   </button>
                 </div>
               </div>
