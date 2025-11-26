@@ -15,7 +15,6 @@ const AdminProductsPage = () => {
 
   if (!token) navigate("/admin-login");
 
-  
   const fetchProducts = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/api/products`, {
@@ -35,7 +34,6 @@ const AdminProductsPage = () => {
     fetchProducts();
   }, []);
 
- 
   const deleteProduct = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
 
@@ -52,7 +50,6 @@ const AdminProductsPage = () => {
     }
   };
 
- 
   const filterLogic = (p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category.toLowerCase().includes(search.toLowerCase()) ||
@@ -63,11 +60,11 @@ const AdminProductsPage = () => {
     setFilteredProducts(products.filter(filterLogic));
   };
 
- 
   if (loading)
     return (
       <p className="text-center text-xl font-semibold mt-10">Loading...</p>
     );
+
   return (
     <div className="max-w-6xl mx-auto p-6 mt-10">
       <div className="flex justify-between items-center mb-5">
@@ -97,6 +94,7 @@ const AdminProductsPage = () => {
               <th className="p-3 border">Category</th>
               <th className="p-3 border">Price</th>
               <th className="p-3 border">Stock</th>
+              <th className="p-3 border">Added On</th>
               <th className="p-3 border">Actions</th>
             </tr>
           </thead>
@@ -117,7 +115,22 @@ const AdminProductsPage = () => {
                 <td className="p-3 border">₹{product.price}</td>
                 <td className="p-3 border">{product.stock}</td>
 
+                <td className="p-3 border">
+                  {product.createdAt
+                    ? new Date(product.createdAt).toLocaleDateString()
+                    : "—"}
+                </td>
+
                 <td className="p-3 border flex gap-2">
+                  <button
+                    onClick={() =>
+                      navigate(`/admin/products/view/${product._id}`)
+                    }
+                    className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700"
+                  >
+                    View
+                  </button>
+
                   <Link
                     to={`/admin/products/edit/${product._id}`}
                     className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
@@ -137,7 +150,7 @@ const AdminProductsPage = () => {
 
             {filteredProducts.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center p-3 text-gray-500">
+                <td colSpan="7" className="text-center p-3 text-gray-500">
                   No products found
                 </td>
               </tr>

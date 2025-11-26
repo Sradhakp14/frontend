@@ -4,7 +4,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 
-
 import HomePage from "./pages/HomePage.jsx";
 import ShopPage from "./pages/ShopPage.jsx";
 import ProductDetailsPage from "./pages/ProductDetailsPage.jsx";
@@ -30,17 +29,30 @@ import AdminOrdersPage from "./pages/AdminOrdersPage.jsx";
 import AdminRevenuePage from "./pages/AdminRevenuePage.jsx";
 import AdminMessages from "./pages/AdminMessages.jsx";
 import AdminUserPage from "./pages/AdminUserPage.jsx";
+import AdminProductView from "./pages/AdminProductView.jsx";
 
 import PrivateAdminRoute from "./PrivateAdminRoute.jsx";
 
 function App() {
+  // Hide Navbar & Footer for ALL admin pages
+  function isAdminRoute() {
+    const path = window.location.pathname.toLowerCase();
+    return (
+      path === "/admindashboard" || 
+      path.startsWith("/admin")
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+
+      {/* Hide navbar on all admin pages */}
+      {!isAdminRoute() && <Navbar />}
 
       <main className="flex-1">
         <Routes>
-          {/* PUBLIC PAGES */}
+
+          {/* USER ROUTES */}
           <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/product/:id" element={<ProductDetailsPage />} />
@@ -57,9 +69,10 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/orders" element={<OrdersPage />} />
 
-          {/* ADMIN PAGES */}
+          {/* ADMIN LOGIN */}
           <Route path="/admin-login" element={<AdminLoginPage />} />
 
+          {/* ADMIN PROTECTED ROUTES */}
           <Route
             path="/admindashboard"
             element={
@@ -92,6 +105,15 @@ function App() {
             element={
               <PrivateAdminRoute>
                 <AdminProductForm />
+              </PrivateAdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/products/view/:id"
+            element={
+              <PrivateAdminRoute>
+                <AdminProductView />
               </PrivateAdminRoute>
             }
           />
@@ -132,12 +154,15 @@ function App() {
             }
           />
 
-          
+          {/* FALLBACK */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
         </Routes>
       </main>
 
-      <Footer />
+      {/* Hide footer on admin pages */}
+      {!isAdminRoute() && <Footer />}
+
     </div>
   );
 }

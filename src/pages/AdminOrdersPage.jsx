@@ -44,12 +44,29 @@ const AdminOrdersPage = () => {
     }
   };
 
+  // -------------------------------
+  // 🔥 APPROVE RETURN
+  // -------------------------------
+  const approveReturn = async (id) => {
+    try {
+      await axios.put(
+        `${BASE_URL}/api/orders/${id}/return/approve`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      fetchOrders();
+    } catch (err) {
+      console.error("Return Approve Error:", err);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
   // --------------------------
-  // 🔥 DATE FILTER FUNCTIONS
+  // DATE FILTER FUNCTIONS
   // --------------------------
 
   const isToday = (date) => {
@@ -81,9 +98,6 @@ const AdminOrdersPage = () => {
     );
   };
 
-  // --------------------------
-  // APPLY DATE FILTER
-  // --------------------------
   const dateFilteredOrders = orders.filter((o) => {
     if (dateFilter === "Today") return isToday(o.createdAt);
     if (dateFilter === "This Week") return isThisWeek(o.createdAt);
@@ -91,9 +105,6 @@ const AdminOrdersPage = () => {
     return true;
   });
 
-  // --------------------------
-  // APPLY STATUS FILTER
-  // --------------------------
   const finalFilteredOrders =
     filter === "All"
       ? dateFilteredOrders
@@ -108,8 +119,7 @@ const AdminOrdersPage = () => {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
-
-      {/* ---------------- SIDEBAR ---------------- */}
+      {/* SIDEBAR */}
       <div className="w-64 bg-white border-r shadow p-5">
         <h2 className="text-2xl font-bold mb-4">Filters</h2>
 
@@ -124,6 +134,7 @@ const AdminOrdersPage = () => {
           "Delivered",
           "Cancelled",
           "Returned",
+          "Return Requested",
         ].map((st) => (
           <div key={st} className="flex items-center gap-2 mb-2">
             <input
@@ -151,7 +162,7 @@ const AdminOrdersPage = () => {
         ))}
       </div>
 
-      {/* ---------------- MAIN CONTENT ---------------- */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 p-6">
         <h1 className="text-3xl font-bold mb-6">GoldMart Admin Orders</h1>
 
@@ -181,7 +192,7 @@ const AdminOrdersPage = () => {
                   </div>
                 </div>
 
-                {/* Items table */}
+                {/* TABLE */}
                 <table className="w-full border text-sm mb-4">
                   <thead>
                     <tr className="bg-gray-200 text-left">
@@ -210,13 +221,13 @@ const AdminOrdersPage = () => {
                   </tbody>
                 </table>
 
-                {/* Status Only — Pickup Button Removed */}
+                {/* ACTIONS */}
                 <div className="flex justify-between items-center">
+
+                  {/* STATUS DROPDOWN */}
                   <select
                     value={order.status}
-                    onChange={(e) =>
-                      updateStatus(order._id, e.target.value)
-                    }
+                    onChange={(e) => updateStatus(order._id, e.target.value)}
                     className="border px-3 py-1 rounded"
                   >
                     <option>Pending</option>
@@ -226,9 +237,18 @@ const AdminOrdersPage = () => {
                     <option>Delivered</option>
                     <option>Cancelled</option>
                     <option>Returned</option>
+                    <option>Return Requested</option>
                   </select>
 
-                  {/* Pickup button fully removed */}
+                  {/* 🔥 APPROVE RETURN BUTTON */}
+                  {order.status === "Return Requested" && (
+                    <button
+                      onClick={() => approveReturn(order._id)}
+                      className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
+                    >
+                      Approve Return
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

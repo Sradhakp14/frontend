@@ -41,20 +41,36 @@ const PaymentPage = () => {
         return;
       }
 
+      if (!address.pincode || address.pincode.length !== 6) {
+        alert("Pincode must be 6 digits!");
+        return;
+      }
+
+      // Correct orderItems according to orderModel
       const formattedItems = cart.map((item) => ({
-        product: item._id, 
+        product: item._id,
         name: item.name,
-        description: item.description || "",
         qty: item.qty,
         price: item.price,
         image: item.image,
       }));
 
+      // Correct shippingAddress structure
+      const formattedAddress = {
+        name: address.name,
+        phone: address.phone,
+        fullAddress: address.fullAddress,
+        locality: address.locality,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+      };
+
       const { data } = await axios.post(
         `${BASE_URL}/api/orders`,
         {
           orderItems: formattedItems,
-          shippingAddress: address,
+          shippingAddress: formattedAddress,
           paymentMethod,
           totalPrice: total,
         },
@@ -64,7 +80,8 @@ const PaymentPage = () => {
       );
 
       localStorage.removeItem("cart");
-      navigate("/orders", { state: { orderId: data._id || data.order._id } });
+
+      navigate("/orders", { state: { orderId: data._id } });
     } catch (err) {
       console.error("Place order error:", err);
       alert("Order failed. Server error.");
@@ -75,8 +92,8 @@ const PaymentPage = () => {
     if (!paymentMethod) return alert("Select a payment method first!");
 
     if (paymentMethod === "UPI") setShowGpay(true);
-    if (paymentMethod === "CARD") setShowCard(true);
-    if (paymentMethod === "COD") setShowCod(true);
+    if (paymentMethod === "Card") setShowCard(true);
+    if (paymentMethod === "Cash on Delivery") setShowCod(true);
   };
 
   return (
@@ -84,7 +101,7 @@ const PaymentPage = () => {
       <div className="max-w-4xl mx-auto bg-white shadow-xl border rounded-2xl p-8">
         <h2 className="text-3xl font-bold text-center mb-8">Secure Payment</h2>
 
-    
+        {/* Address Box */}
         <div className="border rounded-xl p-5 mb-8 bg-yellow-50">
           <h3 className="text-lg font-semibold">Delivery Address</h3>
           <p>{address.fullAddress}</p>
@@ -96,7 +113,7 @@ const PaymentPage = () => {
           </p>
         </div>
 
-        
+        {/* Order Summary */}
         <div className="border rounded-xl p-5 mb-8">
           <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
           {cart.map((item, i) => (
@@ -114,17 +131,17 @@ const PaymentPage = () => {
                   </p>
                 </div>
               </div>
-              <p className="font-semibold">₹{item.price * (item.qty || 1)}</p>
+              <p className="font-semibold">₹{item.price * item.qty}</p>
             </div>
           ))}
         </div>
 
-    
+        {/* Payment Methods */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
-            { type: "UPI", text: "GPay / PhonePe / Paytm" },
-            { type: "CARD", text: "Visa / Mastercard" },
-            { type: "COD", text: "Cash on Delivery" },
+            { type: "UPI", label: "UPI", text: "GPay / PhonePe / Paytm" },
+            { type: "Card", label: "Card", text: "Visa / Mastercard" },
+            { type: "Cash on Delivery", label: "Cash on Delivery", text: "COD" },
           ].map((m) => (
             <div
               key={m.type}
@@ -133,13 +150,13 @@ const PaymentPage = () => {
                 paymentMethod === m.type ? "border-yellow-600 bg-yellow-50" : ""
               }`}
             >
-              <p className="font-semibold">{m.type}</p>
+              <p className="font-semibold">{m.label}</p>
               <p className="text-sm text-gray-500">{m.text}</p>
             </div>
           ))}
         </div>
 
-        
+        {/* Total */}
         <div className="flex justify-between border-t pt-4">
           <span className="text-lg font-semibold">Total Amount</span>
           <span className="text-xl font-bold text-yellow-700">₹{total}</span>
@@ -153,7 +170,7 @@ const PaymentPage = () => {
         </button>
       </div>
 
-      
+      {/* Popups */}
       {showGpay && (
         <GpayPopup
           amount={total}

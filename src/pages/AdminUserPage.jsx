@@ -7,18 +7,17 @@ const AdminUsersPage = () => {
   const [users, setUsers] = useState([]);
   const token = localStorage.getItem("adminToken");
 
-  
   const fetchUsers = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      
-      setUsers(res.data.users || []);
+      // FIXED HERE
+      setUsers(res.data || []);
     } catch (err) {
       console.log("Users fetch error:", err);
-      setUsers([]); 
+      setUsers([]);
     }
   };
 

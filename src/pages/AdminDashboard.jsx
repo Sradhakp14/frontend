@@ -12,9 +12,15 @@ const AdminDashboard = () => {
     products: 0,
     orders: 0,
     users: 0,
+    messages: 0, // ✅ NEW
   });
 
   useEffect(() => {
+    if (!token) {
+      navigate("/adminlogin");
+      return;
+    }
+
     const fetchCounts = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
@@ -25,31 +31,41 @@ const AdminDashboard = () => {
           axios.get(`${BASE_URL}/api/admin/users/count`, { headers }),
         ]);
 
+        // ✅ Load messages from localStorage
+        const savedMessages = JSON.parse(
+          localStorage.getItem("contactMessages") || "[]"
+        );
+
         setCounts({
           products: productsRes.data.count || 0,
           orders: ordersRes.data.count || 0,
           users: usersRes.data.count || 0,
+          messages: savedMessages.length || 0, // ✅ SET MESSAGE COUNT
         });
+
       } catch (err) {
         console.error("Dashboard Count Error:", err);
-        if (err.response && err.response.status === 401) {
+
+        if (err.response?.status === 401) {
           handleLogout();
         }
       }
     };
 
-    if (token) fetchCounts();
-  }, [token]);
+    fetchCounts();
+  }, [token, navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
-    navigate("/admin/login");
+    navigate("/adminlogin");
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
+      
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+
         <button
           onClick={handleLogout}
           className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition"
@@ -59,7 +75,8 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        
+
+        {/* PRODUCTS */}
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/products")}
@@ -70,7 +87,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        
+        {/* ORDERS */}
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/orders")}
@@ -81,7 +98,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        
+        {/* USERS */}
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/users")}
@@ -92,7 +109,18 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        
+        {/* MESSAGES – NEW */}
+        <div
+          className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
+          onClick={() => navigate("/admin/messages")}
+        >
+          <h2 className="text-xl font-semibold text-gray-700">Messages</h2>
+          <p className="text-4xl font-bold text-blue-600 mt-3">
+            {counts.messages}
+          </p>
+        </div>
+
+        {/* REVENUE */}
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/revenue")}
@@ -100,6 +128,7 @@ const AdminDashboard = () => {
           <h2 className="text-xl font-semibold text-gray-700">Revenue</h2>
           <p className="text-4xl font-bold text-green-600 mt-3">₹</p>
         </div>
+
       </div>
     </div>
   );

@@ -9,30 +9,27 @@ const OrderPage = () => {
   const [orderHistory, setOrderHistory] = useState([]);
   const [filter, setFilter] = useState("All");
 
+  // CANCEL POPUP
   const [showReasonPopup, setShowReasonPopup] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [actionType, setActionType] = useState("");
   const [reason, setReason] = useState("");
 
+  // RETURN POPUP
+  const [showReturnPopup, setShowReturnPopup] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  // CONFIRM POPUP
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
 
-  const [showReturnConfirmPopup, setShowReturnConfirmPopup] = useState(false);
-
   const navigate = useNavigate();
 
-  // ============================
-  // 🔥 Redirect if NOT logged in
-  // ============================
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!localStorage.getItem("token")) navigate("/login");
   }, []);
 
-
+  // FETCH ORDERS
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -46,7 +43,7 @@ const OrderPage = () => {
 
       setOrderHistory(sorted);
     } catch (err) {
-      console.error("Error loading orders:", err);
+      console.error("Order load failed:", err);
     } finally {
       setLoading(false);
     }
@@ -55,8 +52,6 @@ const OrderPage = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  const getStatus = (o) => o.status || "Pending";
 
   const getImageUrl = (img) => {
     if (!img) return "/images/placeholder.jpg";
@@ -75,38 +70,11 @@ const OrderPage = () => {
     });
   };
 
-  const openPopup = (order, type) => {
-    const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
-
-    if (type === "return") {
-      if (!deliveredAt) {
-        setConfirmMessage("Order not delivered yet.");
-        setShowConfirmPopup(true);
-        return;
-      }
-
-      const diffDays =
-        (new Date() - deliveredAt) / (1000 * 60 * 60 * 24);
-
-      if (diffDays > 7) {
-        setConfirmMessage("Return window expired.");
-        setShowConfirmPopup(true);
-        return;
-      }
-
-      setSelectedOrder(order);
-      setShowReturnConfirmPopup(true);
-      return;
-    }
-
+  // --------------------------
+  // CANCEL ORDER
+  // --------------------------
+  const openCancelPopup = (order) => {
     setSelectedOrder(order);
-    setActionType(type);
-    setShowReasonPopup(true);
-  };
-
-  const confirmReturnProceed = () => {
-    setShowReturnConfirmPopup(false);
-    setActionType("return");
     setShowReasonPopup(true);
   };
 
@@ -116,52 +84,74 @@ const OrderPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      if (actionType === "cancel") {
-        await axios.put(
-          `${BASE_URL}/api/orders/${selectedOrder._id}/cancel`,
-          { reason },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setConfirmMessage("Order cancelled successfully.");
-      }
+      await axios.put(
+        `${BASE_URL}/api/orders/${selectedOrder._id}/cancel`,
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      if (actionType === "return") {
-        await axios.put(
-          `${BASE_URL}/api/orders/${selectedOrder._id}/return-request`,
-          { reason },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setConfirmMessage("Return request submitted.");
-      }
-
+      setConfirmMessage("Order cancelled successfully.");
+      setShowConfirmPopup(true);
       setShowReasonPopup(false);
       setReason("");
-      setShowConfirmPopup(true);
+
       fetchOrders();
     } catch (err) {
-      alert(err?.response?.data?.message || "Something went wrong.");
+      alert(err.response?.data?.message || "Something went wrong.");
     }
   };
 
+  // --------------------------
+  // RETURN REQUEST
+  // --------------------------
+  const openReturnPopup = (order, item) => {
+    setSelectedOrder(order);
+    setSelectedItem(item);
+    setShowReturnPopup(true);
+  };
+
+  const submitReturnRequest = async () => {
+    if (!returnReason.trim()) return alert("Select a reason!");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${BASE_URL}/api/orders/${selectedOrder._id}/return/${selectedItem._id}`,
+        { reason: returnReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setShowReturnPopup(false);
+      setReturnReason("");
+      setConfirmMessage("Return Requested Successfully.");
+      setShowConfirmPopup(true);
+
+      fetchOrders();
+    } catch (err) {
+      console.log(err);
+      alert("Return request failed.");
+    }
+  };
+
+  // --------------------------
+  // DOWNLOAD INVOICE
+  // --------------------------
   const downloadInvoice = async (orderId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${BASE_URL}/api/orders/${orderId}/invoice`,
-        {
-          responseType: "blob",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await axios.get(`${BASE_URL}/api/orders/${orderId}/invoice`, {
+        responseType: "blob",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      const pdfBlob = new Blob([res.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(pdfBlob);
-
+      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
       const link = document.createElement("a");
       link.href = url;
       link.download = `invoice_${orderId}.pdf`;
       link.click();
-    } catch (err) {
+      URL.revokeObjectURL(url);
+    } catch {
       alert("Invoice download failed.");
     }
   };
@@ -169,12 +159,14 @@ const OrderPage = () => {
   const filteredOrders =
     filter === "All"
       ? orderHistory
-      : filter === "Returned"
-      ? orderHistory.filter((o) => getStatus(o) === "Returned")
-      : orderHistory.filter((o) => getStatus(o) === filter);
+      : orderHistory.filter((o) => o.status === filter);
 
   if (loading)
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-yellow-50 py-10 px-4">
@@ -182,7 +174,7 @@ const OrderPage = () => {
 
         {/* FILTER BUTTONS */}
         <div className="flex justify-center gap-4 mb-6">
-          {["All", "Delivered", "Cancelled", "Returned"].map((b) => (
+          {["All", "Delivered", "Cancelled", "Return Requested", "Returned"].map((b) => (
             <button
               key={b}
               onClick={() => setFilter(b)}
@@ -204,193 +196,213 @@ const OrderPage = () => {
         )}
 
         {/* ORDERS */}
-        {filteredOrders.map((order) => {
-          const status = getStatus(order);
-          const deliveredAt = order.deliveredAt
-            ? new Date(order.deliveredAt)
-            : null;
-
-          const withinReturnPeriod =
-            deliveredAt &&
-            (new Date() - deliveredAt) / (1000 * 60 * 60 * 24) <= 7;
-
-          return (
-            <div key={order._id} className="bg-white rounded-2xl shadow-md p-6 mb-6">
-
-              {/* ORDER HEADER */}
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <p className="font-semibold">
-                    Order ID:{" "}
-                    <span className="text-yellow-700">{order._id}</span>
+        {filteredOrders.map((order) => (
+          <div key={order._id} className="bg-white rounded-2xl shadow-md p-6 mb-6">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <p className="font-semibold">
+                  Order ID: <span className="text-yellow-700">{order._id}</span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Ordered: {formatDate(order.createdAt)}
+                </p>
+                {order.deliveredAt && (
+                  <p className="text-sm text-green-600">
+                    Delivered: {formatDate(order.deliveredAt)}
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Ordered on: {formatDate(order.createdAt)}
-                  </p>
-
-                  {order.deliveredAt && (
-                    <p className="text-sm text-green-600">
-                      Delivered on: {formatDate(order.deliveredAt)}
-                    </p>
-                  )}
-                </div>
-
-                <span className="text-sm font-bold text-gray-800">
-                  {status}
-                </span>
+                )}
               </div>
 
-              <div className="border-t pt-3">
-                {order.orderItems.map((it, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between items-center border-b pb-2 mb-2"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getImageUrl(it.image)}
-                        className="w-16 h-16 object-cover rounded-md"
-                      />
-                      <div>
-                        <p className="font-medium">{it.name}</p>
-                        <p className="text-sm text-gray-600">
-                          Qty: {it.qty} × ₹{it.price}
-                        </p>
-                      </div>
+              <span className="text-sm font-bold text-gray-800">
+                {order.status}
+              </span>
+            </div>
+
+            {/* ITEMS */}
+            <div className="border-t pt-3">
+              {order.orderItems.map((it) => (
+                <div
+                  key={it._id}
+                  className="flex justify-between items-center border-b pb-2 mb-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={getImageUrl(it.image)}
+                      className="w-16 h-16 object-cover rounded-md"
+                    />
+                    <div>
+                      <p className="font-medium">{it.name}</p>
+                      <p className="text-sm text-gray-600">
+                        Qty: {it.qty} × ₹{it.price}
+                      </p>
                     </div>
-
-                    <strong className="text-yellow-700">
-                      ₹{it.qty * it.price}
-                    </strong>
                   </div>
-                ))}
+
+                  {/* RETURN STATUS */}
+                  <div className="text-right">
+                    {it.returnRequested && !it.returnApproved && (
+                      <p className="text-orange-600 font-semibold">Return Requested</p>
+                    )}
+                    {it.returnApproved && !it.returnPickedUp && (
+                      <p className="text-blue-600 font-semibold">Pickup Scheduled</p>
+                    )}
+                    {it.returnPickedUp && (
+                      <p className="text-red-600 font-semibold">Returned</p>
+                    )}
+
+                    {/* RETURN BUTTON */}
+                    {order.status === "Delivered" &&
+                      !it.returnRequested &&
+                      !it.returnApproved &&
+                      !it.returnPickedUp && (
+                        <button
+                          onClick={() => openReturnPopup(order, it)}
+                          className="px-3 py-1 bg-red-600 text-white rounded-lg mt-2"
+                        >
+                          Return
+                        </button>
+                      )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between mt-4 items-center">
+              <div>
+                <p className="font-semibold">
+                  Payment:{" "}
+                  <span className="text-yellow-700">{order.paymentMethod}</span>
+                </p>
+                <p className="text-lg font-bold text-yellow-700">
+                  Total: ₹{order.totalPrice}
+                </p>
               </div>
 
-              {/* BUTTONS */}
-              <div className="flex justify-between mt-4 items-center">
-                <div>
-                  <p className="font-semibold">
-                    Payment:{" "}
-                    <span className="text-yellow-700">{order.paymentMethod}</span>
-                  </p>
-                  <p className="text-lg font-bold text-yellow-700">
-                    Total: ₹{order.totalPrice}
-                  </p>
-                </div>
+              <div className="flex gap-3">
+                {/* CANCEL BUTTON */}
+                {order.status === "Pending" && (
+                  <button
+                    onClick={() => openCancelPopup(order)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                )}
 
-                <div className="flex gap-3">
-                  {status === "Pending" && (
-                    <button
-                      onClick={() => openPopup(order, "cancel")}
-                      className="px-4 py-2 bg-red-600 text-white rounded-xl"
-                    >
-                      Cancel
-                    </button>
-                  )}
-
-                  {deliveredAt && withinReturnPeriod && !order.returnRequested && (
-                    <button
-                      onClick={() => openPopup(order, "return")}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-xl"
-                    >
-                      Request Return
-                    </button>
-                  )}
-
-                  {deliveredAt && (
-                    <button
-                      onClick={() => downloadInvoice(order._id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-xl"
-                    >
-                      Invoice
-                    </button>
-                  )}
-                </div>
+                {/* INVOICE */}
+                <button
+                  onClick={() => downloadInvoice(order._id)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl"
+                >
+                  Invoice
+                </button>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* ===== CANCEL / RETURN REASON POPUP ===== */}
+      {/* CANCEL POPUP */}
       {showReasonPopup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-80">
-            <h3 className="font-bold mb-3">Select Reason</h3>
-
-            <select
-              className="w-full border p-2 rounded"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            >
-              <option value="">Select a reason</option>
-              <option value="Ordered by mistake">Ordered by mistake</option>
-              <option value="Found cheaper somewhere else">Found cheaper</option>
-              <option value="Delivery taking too long">Delivery delay</option>
-              <option value="Product not needed now">Not needed</option>
-            </select>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                className="px-3 py-1 bg-gray-300 rounded"
-                onClick={() => setShowReasonPopup(false)}
-              >
-                Close
-              </button>
-
-              <button
-                className="px-3 py-1 bg-yellow-600 text-white rounded"
-                onClick={submitReason}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
+        <CancelPopup
+          reason={reason}
+          setReason={setReason}
+          submitReason={submitReason}
+          close={() => setShowReasonPopup(false)}
+        />
       )}
 
-      {/* ==== FINAL CONFIRM POPUP ==== */}
+      {/* RETURN POPUP */}
+      {showReturnPopup && (
+        <ReturnPopup
+          reason={returnReason}
+          setReason={setReturnReason}
+          submitReason={submitReturnRequest}
+          close={() => setShowReturnPopup(false)}
+        />
+      )}
+
+      {/* CONFIRM POPUP */}
       {showConfirmPopup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-80 text-center">
-            <p className="mb-4">{confirmMessage}</p>
-            <button
-              className="px-4 py-2 bg-yellow-600 text-white rounded-xl"
-              onClick={() => setShowConfirmPopup(false)}
-            >
-              OK
-            </button>
-          </div>
-        </div>
+        <ConfirmPopup
+          message={confirmMessage}
+          close={() => setShowConfirmPopup(false)}
+        />
       )}
-
-      {/* ==== RETURN CONFIRM BEFORE REASON SCREEN ==== */}
-      {showReturnConfirmPopup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-80 text-center">
-            <p className="mb-4">
-              Are you sure you want to request a return?
-            </p>
-            <div className="flex justify-center gap-3">
-              <button
-                className="px-4 py-2 bg-gray-300 rounded"
-                onClick={() => setShowReturnConfirmPopup(false)}
-              >
-                No
-              </button>
-              <button
-                className="px-4 py-2 bg-purple-600 text-white rounded"
-                onClick={confirmReturnProceed}
-              >
-                Yes, Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };
+
+/* -------------------------
+   POPUP COMPONENTS
+-------------------------- */
+const CancelPopup = ({ reason, setReason, submitReason, close }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+    <div className="bg-white p-6 rounded-xl w-80">
+      <h3 className="font-bold mb-3">Reason for Cancellation</h3>
+
+      <select
+        className="w-full border p-2 rounded"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      >
+        <option value="">Select a reason</option>
+        <option value="Ordered by mistake">Ordered by mistake</option>
+        <option value="Found cheaper elsewhere">Found cheaper elsewhere</option>
+        <option value="Delivery taking too long">Delivery delay</option>
+        <option value="Product not needed now">No longer needed</option>
+      </select>
+
+      <div className="flex justify-end gap-3 mt-4">
+        <button className="px-3 py-1 bg-gray-300 rounded" onClick={close}>
+          Close
+        </button>
+        <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={submitReason}>
+          Cancel Order
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const ReturnPopup = ({ reason, setReason, submitReason, close }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+    <div className="bg-white p-6 rounded-xl w-80">
+      <h3 className="font-bold mb-3">Reason for Return</h3>
+
+      <select
+        className="w-full border p-2 rounded"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      >
+        <option value="">Select a reason</option>
+        <option value="Wrong item received">Wrong item received</option>
+        <option value="Product damaged">Product damaged</option>
+        <option value="Not satisfied with quality">Not satisfied</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <div className="flex justify-end gap-3 mt-4">
+        <button className="px-3 py-1 bg-gray-300 rounded" onClick={close}>
+          Close
+        </button>
+        <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={submitReason}>
+          Submit Return
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const ConfirmPopup = ({ message, close }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+    <div className="bg-white p-6 rounded-xl w-80 text-center">
+      <p className="mb-4">{message}</p>
+      <button className="px-4 py-2 bg-yellow-600 text-white rounded-xl" onClick={close}>
+        OK
+      </button>
+    </div>
+  </div>
+);
 
 export default OrderPage;
