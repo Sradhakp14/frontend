@@ -44,9 +44,6 @@ const AdminOrdersPage = () => {
     }
   };
 
-  // -------------------------------
-  // 🔥 APPROVE RETURN
-  // -------------------------------
   const approveReturn = async (id) => {
     try {
       await axios.put(
@@ -64,10 +61,6 @@ const AdminOrdersPage = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  // --------------------------
-  // DATE FILTER FUNCTIONS
-  // --------------------------
 
   const isToday = (date) => {
     const d = new Date(date);
@@ -119,11 +112,8 @@ const AdminOrdersPage = () => {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
-      {/* SIDEBAR */}
       <div className="w-64 bg-white border-r shadow p-5">
         <h2 className="text-2xl font-bold mb-4">Filters</h2>
-
-        {/* STATUS FILTER */}
         <h3 className="font-semibold mb-2 text-gray-700">Status</h3>
         {[
           "All",
@@ -147,8 +137,7 @@ const AdminOrdersPage = () => {
         ))}
 
         <hr className="my-4" />
-
-        {/* DATE FILTER */}
+        
         <h3 className="font-semibold mb-2 text-gray-700">Date Filter</h3>
         {["All", "Today", "This Week", "This Month"].map((dt) => (
           <div key={dt} className="flex items-center gap-2 mb-2">
@@ -162,7 +151,6 @@ const AdminOrdersPage = () => {
         ))}
       </div>
 
-      {/* MAIN CONTENT */}
       <div className="flex-1 p-6">
         <h1 className="text-3xl font-bold mb-6">GoldMart Admin Orders</h1>
 
@@ -192,7 +180,7 @@ const AdminOrdersPage = () => {
                   </div>
                 </div>
 
-                {/* TABLE */}
+                
                 <table className="w-full border text-sm mb-4">
                   <thead>
                     <tr className="bg-gray-200 text-left">
@@ -221,10 +209,7 @@ const AdminOrdersPage = () => {
                   </tbody>
                 </table>
 
-                {/* ACTIONS */}
                 <div className="flex justify-between items-center">
-
-                  {/* STATUS DROPDOWN */}
                   <select
                     value={order.status}
                     onChange={(e) => updateStatus(order._id, e.target.value)}
@@ -239,8 +224,6 @@ const AdminOrdersPage = () => {
                     <option>Returned</option>
                     <option>Return Requested</option>
                   </select>
-
-                  {/* 🔥 APPROVE RETURN BUTTON */}
                   {order.status === "Return Requested" && (
                     <button
                       onClick={() => approveReturn(order._id)}
