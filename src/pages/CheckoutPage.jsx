@@ -26,7 +26,7 @@ const CheckoutPage = () => {
 
   const [form, setForm] = useState(emptyForm);
 
-  // LOGIN PROTECTION
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -40,7 +40,7 @@ const CheckoutPage = () => {
     setUserId(user._id);
   }, [navigate]);
 
-  // LOAD USER ADDRESSES
+  
   useEffect(() => {
     if (!userId) return;
 
@@ -61,9 +61,7 @@ const CheckoutPage = () => {
     localStorage.setItem(`addresses_${userId}`, JSON.stringify(list));
   };
 
-  // ---------------------------------------------------------
-  // ADDRESS VALIDATION (PINCODE + PHONE FIXED HERE)
-  // ---------------------------------------------------------
+  
   const validateForm = () => {
     const { name, phone, street, city, state, pincode } = form;
 
@@ -85,7 +83,7 @@ const CheckoutPage = () => {
     return true;
   };
 
-  // ADD NEW ADDRESS
+  
   const handleAddAddress = () => {
     if (!validateForm()) return;
 
@@ -97,7 +95,7 @@ const CheckoutPage = () => {
     setIsAddingOrEditing(false);
   };
 
-  // SAVE EDIT
+  
   const handleSaveEdit = () => {
     if (!validateForm()) return;
 
@@ -109,7 +107,7 @@ const CheckoutPage = () => {
     setIsAddingOrEditing(false);
   };
 
-  // DELETE ADDRESS
+  
   const handleDeleteAddress = (index) => {
     if (!window.confirm("Delete this address?")) return;
 
@@ -119,7 +117,7 @@ const CheckoutPage = () => {
     setSelectedIndex(updated.length > 0 ? 0 : null);
   };
 
-  // PROCEED TO PAYMENT
+  
   const handleProceed = () => {
     if (cart.length === 0) {
       alert("Your cart is empty");
@@ -140,7 +138,7 @@ const CheckoutPage = () => {
     navigate("/payment");
   };
 
-  // FIX IMAGE
+  
   const getImageUrl = (url) => {
     if (!url) return "/images/placeholder.jpg";
     if (url.startsWith("http")) return url;
@@ -156,7 +154,7 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-white py-8 px-4">
       <div className="max-w-6xl mx-auto bg-white rounded-md shadow-xl border border-yellow-300">
 
-        {/* HEADER */}
+        
         <div className="bg-yellow-500 text-white py-4 px-6 flex justify-between items-center rounded-t-md">
           <h2 className="text-xl font-semibold">Checkout</h2>
           <p className="text-sm opacity-90">Premium & Secure Checkout</p>
@@ -165,13 +163,13 @@ const CheckoutPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
           <div className="md:col-span-2 space-y-6">
 
-            {/* ADDRESS SECTION */}
+          
             <div className="border border-yellow-300 rounded-md p-5 bg-white shadow-sm">
               <h3 className="text-lg font-semibold text-yellow-700 mb-4">
                 1. DELIVERY ADDRESS
               </h3>
 
-              {/* SELECTED ADDRESS VIEW */}
+            
               {selectedIndex !== null && !isAddingOrEditing ? (
                 <div className="border p-4 rounded-md bg-yellow-50 border-yellow-400 shadow-sm">
                   <p className="font-medium">
@@ -191,7 +189,7 @@ const CheckoutPage = () => {
                 </div>
               ) : (
                 <>
-                  {/* LIST OF ADDRESSES */}
+                  
                   {addresses.length === 0 ? (
                     <p className="text-gray-500 text-sm mb-3">
                       No saved addresses. Add a new one below.
@@ -252,7 +250,7 @@ const CheckoutPage = () => {
                 </>
               )}
 
-              {/* ADD/EDIT FORM */}
+            
               {isAddingOrEditing && (
                 <div className="mt-4 border-t pt-4">
                   <h4 className="font-semibold text-yellow-700 mb-2">
@@ -275,13 +273,13 @@ const CheckoutPage = () => {
                         onChange={(e) => {
                           let val = e.target.value;
 
-                          // PHONE: only digits, max 10
+                          
                           if (key === "phone") {
                             val = val.replace(/\D/g, "");
                             if (val.length > 10) return;
                           }
 
-                          // PINCODE: only digits, max 6
+                          
                           if (key === "pincode") {
                             val = val.replace(/\D/g, "");
                             if (val.length > 6) return;
@@ -316,7 +314,7 @@ const CheckoutPage = () => {
               )}
             </div>
 
-            {/* ORDER SUMMARY */}
+          
             <div className="border border-yellow-300 rounded-md p-5 bg-white shadow-sm">
               <h3 className="text-lg font-semibold mb-4 text-yellow-700">
                 2. ORDER SUMMARY ({cart.length} items)
@@ -343,7 +341,7 @@ const CheckoutPage = () => {
             </div>
           </div>
 
-          {/* PRICE DETAILS */}
+          
           <div className="border border-yellow-300 rounded-md p-5 bg-yellow-50 h-fit sticky top-20 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 border-b pb-2 text-yellow-800">
               PRICE DETAILS
