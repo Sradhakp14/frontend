@@ -15,7 +15,7 @@ const RegisterPage = () => {
 
     setFormData({ ...formData, [name]: value });
 
-    // Live password validation
+    
     if (name === "password") {
       if (value.length < 6) {
         setPasswordError("Password must be at least 6 characters long.");
@@ -28,7 +28,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Extra validation before submit
+    
     if (formData.password.length < 6) {
       setPasswordError("Password must be at least 6 characters long.");
       return;
@@ -56,7 +56,7 @@ const RegisterPage = () => {
       >
         <h2 className="text-2xl font-semibold text-center mb-6">Register</h2>
 
-        {/* Name */}
+        
         <input
           type="text"
           name="name"
@@ -67,7 +67,7 @@ const RegisterPage = () => {
           className="border p-2 mb-4 w-full rounded"
         />
 
-        {/* Email */}
+        
         <input
           type="email"
           name="email"
@@ -78,7 +78,7 @@ const RegisterPage = () => {
           className="border p-2 mb-4 w-full rounded"
         />
 
-        {/* Password */}
+        
         <input
           type="password"
           name="password"
@@ -89,7 +89,7 @@ const RegisterPage = () => {
           className="border p-2 mb-1 w-full rounded"
         />
 
-        {/* Live password error */}
+        
         {passwordError && (
           <p className="text-red-500 text-sm mb-3">{passwordError}</p>
         )}
