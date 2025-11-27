@@ -46,7 +46,7 @@ const PaymentPage = () => {
         return;
       }
 
-      // Correct orderItems according to orderModel
+      
       const formattedItems = cart.map((item) => ({
         product: item._id,
         name: item.name,
@@ -55,7 +55,7 @@ const PaymentPage = () => {
         image: item.image,
       }));
 
-      // Correct shippingAddress structure
+      
       const formattedAddress = {
         name: address.name,
         phone: address.phone,
@@ -113,7 +113,7 @@ const PaymentPage = () => {
           </p>
         </div>
 
-        {/* Order Summary */}
+    
         <div className="border rounded-xl p-5 mb-8">
           <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
           {cart.map((item, i) => (
@@ -136,7 +136,7 @@ const PaymentPage = () => {
           ))}
         </div>
 
-        {/* Payment Methods */}
+      
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
             { type: "UPI", label: "UPI", text: "GPay / PhonePe / Paytm" },
@@ -156,7 +156,7 @@ const PaymentPage = () => {
           ))}
         </div>
 
-        {/* Total */}
+        
         <div className="flex justify-between border-t pt-4">
           <span className="text-lg font-semibold">Total Amount</span>
           <span className="text-xl font-bold text-yellow-700">₹{total}</span>
@@ -170,7 +170,7 @@ const PaymentPage = () => {
         </button>
       </div>
 
-      {/* Popups */}
+    
       {showGpay && (
         <GpayPopup
           amount={total}
