@@ -9,17 +9,17 @@ const OrderPage = () => {
   const [orderHistory, setOrderHistory] = useState([]);
   const [filter, setFilter] = useState("All");
 
-  // CANCEL POPUP
+  
   const [showReasonPopup, setShowReasonPopup] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [reason, setReason] = useState("");
 
-  // RETURN POPUP
+  
   const [showReturnPopup, setShowReturnPopup] = useState(false);
   const [returnReason, setReturnReason] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // CONFIRM POPUP
+  
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
 
@@ -29,7 +29,7 @@ const OrderPage = () => {
     if (!localStorage.getItem("token")) navigate("/login");
   }, []);
 
-  // FETCH ORDERS
+  
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -70,9 +70,7 @@ const OrderPage = () => {
     });
   };
 
-  // --------------------------
-  // CANCEL ORDER
-  // --------------------------
+  
   const openCancelPopup = (order) => {
     setSelectedOrder(order);
     setShowReasonPopup(true);
@@ -101,9 +99,7 @@ const OrderPage = () => {
     }
   };
 
-  // --------------------------
-  // RETURN REQUEST
-  // --------------------------
+  
   const openReturnPopup = (order, item) => {
     setSelectedOrder(order);
     setSelectedItem(item);
@@ -134,9 +130,7 @@ const OrderPage = () => {
     }
   };
 
-  // --------------------------
-  // DOWNLOAD INVOICE
-  // --------------------------
+  
   const downloadInvoice = async (orderId) => {
     try {
       const token = localStorage.getItem("token");
@@ -172,7 +166,7 @@ const OrderPage = () => {
     <div className="min-h-screen bg-yellow-50 py-10 px-4">
       <div className="max-w-4xl mx-auto">
 
-        {/* FILTER BUTTONS */}
+        
         <div className="flex justify-center gap-4 mb-6">
           {["All", "Delivered", "Cancelled", "Return Requested", "Returned"].map((b) => (
             <button
@@ -195,7 +189,7 @@ const OrderPage = () => {
           <p className="text-center text-gray-600">No {filter} orders found.</p>
         )}
 
-        {/* ORDERS */}
+      
         {filteredOrders.map((order) => (
           <div key={order._id} className="bg-white rounded-2xl shadow-md p-6 mb-6">
             <div className="flex justify-between items-start mb-3">
@@ -218,7 +212,7 @@ const OrderPage = () => {
               </span>
             </div>
 
-            {/* ITEMS */}
+            
             <div className="border-t pt-3">
               {order.orderItems.map((it) => (
                 <div
@@ -238,7 +232,7 @@ const OrderPage = () => {
                     </div>
                   </div>
 
-                  {/* RETURN STATUS */}
+                  
                   <div className="text-right">
                     {it.returnRequested && !it.returnApproved && (
                       <p className="text-orange-600 font-semibold">Return Requested</p>
@@ -250,7 +244,7 @@ const OrderPage = () => {
                       <p className="text-red-600 font-semibold">Returned</p>
                     )}
 
-                    {/* RETURN BUTTON */}
+                    
                     {order.status === "Delivered" &&
                       !it.returnRequested &&
                       !it.returnApproved &&
@@ -279,7 +273,7 @@ const OrderPage = () => {
               </div>
 
               <div className="flex gap-3">
-                {/* CANCEL BUTTON */}
+                
                 {order.status === "Pending" && (
                   <button
                     onClick={() => openCancelPopup(order)}
@@ -289,7 +283,7 @@ const OrderPage = () => {
                   </button>
                 )}
 
-                {/* INVOICE */}
+              
                 <button
                   onClick={() => downloadInvoice(order._id)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-xl"
@@ -302,7 +296,7 @@ const OrderPage = () => {
         ))}
       </div>
 
-      {/* CANCEL POPUP */}
+      
       {showReasonPopup && (
         <CancelPopup
           reason={reason}
@@ -312,7 +306,7 @@ const OrderPage = () => {
         />
       )}
 
-      {/* RETURN POPUP */}
+    
       {showReturnPopup && (
         <ReturnPopup
           reason={returnReason}
@@ -322,7 +316,7 @@ const OrderPage = () => {
         />
       )}
 
-      {/* CONFIRM POPUP */}
+      
       {showConfirmPopup && (
         <ConfirmPopup
           message={confirmMessage}
@@ -333,9 +327,7 @@ const OrderPage = () => {
   );
 };
 
-/* -------------------------
-   POPUP COMPONENTS
--------------------------- */
+
 const CancelPopup = ({ reason, setReason, submitReason, close }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
     <div className="bg-white p-6 rounded-xl w-80">
