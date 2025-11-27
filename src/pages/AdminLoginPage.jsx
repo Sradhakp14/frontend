@@ -9,7 +9,7 @@ const AdminLoginPage = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  // If admin is already logged in → go to dashboard
+  
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (token) {
@@ -25,10 +25,10 @@ const AdminLoginPage = () => {
         password,
       });
 
-      // Save token
+      
       localStorage.setItem("adminToken", data.token);
 
-      // Redirect to dashboard
+      
       navigate("/admindashboard");
     } catch (err) {
       console.error("Login error:", err);
