@@ -13,7 +13,7 @@ const AdminUsersPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // FIXED HERE
+      
       setUsers(res.data || []);
     } catch (err) {
       console.log("Users fetch error:", err);
