@@ -67,7 +67,7 @@ const AdminRevenuePage = () => {
         },
       ]);
 
-      // FIXED: Convert monthly to full 12-month list
+      
       const apiMonths = Array.isArray(monthlyRes.data?.monthlyRevenue)
         ? monthlyRes.data.monthlyRevenue
         : [];
@@ -138,8 +138,6 @@ const AdminRevenuePage = () => {
   return (
     <div className="p-6 min-h-screen bg-gray-100">
       <div className="max-w-5xl mx-auto">
-
-        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">GoldMart Revenue Dashboard</h1>
 
@@ -167,7 +165,7 @@ const AdminRevenuePage = () => {
           </div>
         </div>
 
-        {/* DATE SELECTOR */}
+      
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <h2 className="text-xl font-bold mb-2">Select Date</h2>
           <input
@@ -178,7 +176,7 @@ const AdminRevenuePage = () => {
           />
         </div>
 
-        {/* DAILY */}
+      
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <h2 className="text-xl font-bold mb-2">Daily Revenue</h2>
 
@@ -202,7 +200,7 @@ const AdminRevenuePage = () => {
           </table>
         </div>
 
-        {/* CUSTOM RANGE */}
+        
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <h2 className="text-xl font-bold mb-2">Custom Weekly Revenue</h2>
 
@@ -231,7 +229,7 @@ const AdminRevenuePage = () => {
           )}
         </div>
 
-        {/* MONTHLY */}
+        
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <h2 className="text-xl font-bold mb-2">Monthly Revenue</h2>
 
@@ -255,7 +253,7 @@ const AdminRevenuePage = () => {
           </table>
         </div>
 
-        {/* YEARLY */}
+        
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-bold mb-2">Yearly Total Revenue</h2>
           <p className="text-2xl font-bold text-green-600">
