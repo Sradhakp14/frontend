@@ -12,7 +12,7 @@ const AdminDashboard = () => {
     products: 0,
     orders: 0,
     users: 0,
-    messages: 0, // ✅ NEW
+    messages: 0, 
   });
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const AdminDashboard = () => {
           axios.get(`${BASE_URL}/api/admin/users/count`, { headers }),
         ]);
 
-        // ✅ Load messages from localStorage
+        
         const savedMessages = JSON.parse(
           localStorage.getItem("contactMessages") || "[]"
         );
@@ -40,7 +40,7 @@ const AdminDashboard = () => {
           products: productsRes.data.count || 0,
           orders: ordersRes.data.count || 0,
           users: usersRes.data.count || 0,
-          messages: savedMessages.length || 0, // ✅ SET MESSAGE COUNT
+          messages: savedMessages.length || 0, 
         });
 
       } catch (err) {
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
-        {/* PRODUCTS */}
+        
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/products")}
@@ -87,7 +87,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* ORDERS */}
+        
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/orders")}
@@ -98,7 +98,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* USERS */}
+        
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/users")}
@@ -109,7 +109,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* MESSAGES – NEW */}
+        
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/messages")}
@@ -120,7 +120,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* REVENUE */}
+        
         <div
           className="bg-white rounded-2xl shadow-lg p-6 text-center hover:scale-105 transition cursor-pointer"
           onClick={() => navigate("/admin/revenue")}
